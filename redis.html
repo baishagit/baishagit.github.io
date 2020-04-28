@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+
+
+
+  
+
+
+<html class="theme-next gemini use-motion" lang="zh-Hans">
+<head>
+  <meta charset="UTF-8"/>
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+<meta name="theme-color" content="#222">
+
+
+
+
+
+
+
+
+
+<meta http-equiv="Cache-Control" content="no-transform" />
+<meta http-equiv="Cache-Control" content="no-siteapp" />
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+  <link href="/lib/fancybox/source/jquery.fancybox.css?v=2.1.5" rel="stylesheet" type="text/css" />
+
+
+
+
+  
+  
+  
+  
+
+  
+    
+    
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+    
+      
+    
+
+    
+  
+
+  
+    
+    
+    <link href="//fonts.googleapis.com/css?family=Monda:300,300italic,400,400italic,700,700italic|Roboto Slab:300,300italic,400,400italic,700,700italic|Lobster Two:300,300italic,400,400italic,700,700italic|PT Mono:300,300italic,400,400italic,700,700italic&subset=latin,latin-ext" rel="stylesheet" type="text/css">
+  
+
+
+
+
+
+
+<link href="/lib/font-awesome/css/font-awesome.min.css?v=4.6.2" rel="stylesheet" type="text/css" />
+
+<link href="/css/main.css?v=5.1.4" rel="stylesheet" type="text/css" />
+
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png?v=5.1.4">
+
+
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png?v=5.1.4">
+
+
+  <link rel="mask-icon" href="/images/logo.svg?v=5.1.4" color="#222">
+
+
+
+
+
+  <meta name="keywords" content="缓存,nosql," />
+
+
+
+
+
+
+
+
+
+
+<meta name="description" content="redis概述：redis是一种非关系型,内存数据库, 常被用来作缓存,redis有更多的数据类型，可以用来完成关系型数据库不好实现的互联网应用的需求场景。 redis的IO模型:redis在处理网络请求时是基于事件驱动的非阻塞IO，利用单线程多路复用IO。redis的其他模块仍用了多个线程 redis的高可用:为什么要高可用​    redis是内存数据库,一但发生断电，保存的数据就不负存在，缓">
+<meta property="og:type" content="article">
+<meta property="og:title" content="redis高可用">
+<meta property="og:url" content="http://yoursite.com/redis.html">
+<meta property="og:site_name" content="个人博客">
+<meta property="og:description" content="redis概述：redis是一种非关系型,内存数据库, 常被用来作缓存,redis有更多的数据类型，可以用来完成关系型数据库不好实现的互联网应用的需求场景。 redis的IO模型:redis在处理网络请求时是基于事件驱动的非阻塞IO，利用单线程多路复用IO。redis的其他模块仍用了多个线程 redis的高可用:为什么要高可用​    redis是内存数据库,一但发生断电，保存的数据就不负存在，缓">
+<meta property="article:published_time" content="2020-04-28T07:55:19.148Z">
+<meta property="article:modified_time" content="2020-04-28T07:58:44.591Z">
+<meta property="article:author" content="白沙">
+<meta property="article:tag" content="缓存">
+<meta property="article:tag" content="nosql">
+<meta name="twitter:card" content="summary">
+
+
+
+<script type="text/javascript" id="hexo.configurations">
+  var NexT = window.NexT || {};
+  var CONFIG = {
+    root: '/',
+    scheme: 'Gemini',
+    version: '5.1.4',
+    sidebar: {"position":"left","display":"post","offset":12,"b2t":false,"scrollpercent":false,"onmobile":false},
+    fancybox: true,
+    tabs: true,
+    motion: {"enable":true,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},
+    duoshuo: {
+      userId: '0',
+      author: '博主'
+    },
+    algolia: {
+      applicationID: '',
+      apiKey: '',
+      indexName: '',
+      hits: {"per_page":10},
+      labels: {"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}
+    }
+  };
+</script>
+
+
+
+  <link rel="canonical" href="http://yoursite.com/redis.html"/>
+
+
+
+
+
+  <title>redis高可用 | 个人博客</title>
+  
+
+
+
+
+
+
+
+
+<meta name="generator" content="Hexo 4.2.0"></head>
+
+<body itemscope itemtype="http://schema.org/WebPage" lang="zh-Hans">
+
+  
+  
+    
+  
+
+  <div class="container sidebar-position-left page-post-detail">
+    <div class="headband"></div>
+
+    <header id="header" class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-wrapper">
+  <div class="site-meta ">
+    
+
+    <div class="custom-logo-site-title">
+      <a href="/"  class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">个人博客</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+      
+        <p class="site-subtitle">技术人生</p>
+      
+  </div>
+
+  <div class="site-nav-toggle">
+    <button>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+      <span class="btn-bar"></span>
+    </button>
+  </div>
+</div>
+
+<nav class="site-nav">
+  
+
+  
+    <ul id="menu" class="menu">
+      
+        
+        <li class="menu-item menu-item-home">
+          <a href="/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            首页
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-about">
+          <a href="/about/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            关于
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-categories">
+          <a href="/categories/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            分类
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-archives">
+          <a href="/archives/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            归档
+          </a>
+        </li>
+      
+        
+        <li class="menu-item menu-item-tags">
+          <a href="/tags/" rel="section">
+            
+              <i class="menu-item-icon fa fa-fw fa-question-circle"></i> <br />
+            
+            标签
+          </a>
+        </li>
+      
+
+      
+    </ul>
+  
+
+  
+</nav>
+
+
+
+ </div>
+    </header>
+
+    <main id="main" class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          <div id="content" class="content">
+            
+
+  <div id="posts" class="posts-expand">
+    
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/redis.html">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="白沙">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/icon.jpg">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="个人博客">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">redis高可用</h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">发表于</span>
+              
+              <time title="创建于" itemprop="dateCreated datePublished" datetime="2020-04-28T15:55:19+08:00">
+                2020-04-28
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+            <span class="post-category" >
+            
+              <span class="post-meta-divider">|</span>
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">分类于</span>
+              
+              
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/redis/" itemprop="url" rel="index">
+                    <span itemprop="name">redis</span>
+                  </a>
+                </span>
+
+                
+                
+              
+            </span>
+          
+
+          
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        <h1 id="redis"><a href="#redis" class="headerlink" title="redis"></a>redis</h1><h3 id="概述："><a href="#概述：" class="headerlink" title="概述："></a>概述：</h3><p><strong>redis是一种非关系型,内存数据库, 常被用来作缓存,redis有更多的数据类型，可以用来完成关系型数据库不好实现的互联网应用的需求场景。</strong></p>
+<h3 id="redis的IO模型"><a href="#redis的IO模型" class="headerlink" title="redis的IO模型:"></a>redis的IO模型:</h3><p><strong>redis在处理网络请求时是基于事件驱动的非阻塞IO，利用单线程多路复用IO。redis的其他模块仍用了多个线程</strong></p>
+<h3 id="redis的高可用"><a href="#redis的高可用" class="headerlink" title="redis的高可用:"></a>redis的高可用:</h3><h4 id="为什么要高可用"><a href="#为什么要高可用" class="headerlink" title="为什么要高可用"></a>为什么要高可用</h4><p>​    <strong>redis是内存数据库,一但发生断电，保存的数据就不负存在，缓存了的数据失效，导致大量数据打入数据库，造成系统性能下降</strong></p>
+<h4 id="1-持久化"><a href="#1-持久化" class="headerlink" title="1.持久化"></a>1.持久化</h4><h4 id="RDB"><a href="#RDB" class="headerlink" title="RDB"></a>RDB</h4><h5 id="原理："><a href="#原理：" class="headerlink" title="原理："></a>原理：</h5><p><em>RDB持久化是把当前进程数据生成快照保存到硬盘的过程，触发RDB持久化过程分为手动触发和自动触发</em></p>
+<h5 id="优缺点："><a href="#优缺点：" class="headerlink" title="优缺点："></a>优缺点：</h5><p><em>优点：RDB是一个紧凑的二进制文件，代表redis在某个事件上的数据快照，可以快速的从磁盘读入到内存中，redis加载RDB恢复数据远远快于AOF的方式</em></p>
+<p><em>缺点：RDB方式数据没办法做到实时持久化/秒级的持久化.因为bgsave每次运行都要执行fork操作创建子进程，属于重量级操作，当系统断电的时候会丢失来不及生成快照的操作</em></p>
+<h4 id="AOF"><a href="#AOF" class="headerlink" title="AOF"></a>AOF</h4><h5 id="原理：-1"><a href="#原理：-1" class="headerlink" title="原理："></a>原理：</h5><p><em>AOF是以日志的方式记录每次写命令，重启的时候重新执行AOF文件中的命令达到恢复数据的目的。AOF可以用来解决RDB无法做到的实时备份</em></p>
+<h5 id="如何开启："><a href="#如何开启：" class="headerlink" title="如何开启："></a>如何开启：</h5><p><em>redis.conf中设置 appendonly yes,默认为no</em></p>
+<h5 id="AOF重写"><a href="#AOF重写" class="headerlink" title="AOF重写"></a>AOF重写</h5><p><em>为什么要重写AOF，因为AOF文件会随着操作命令的变多，变得越来越来大，在备份写入内存中时的时候效率不高。利用AOF重写，将多个命令合并为一个,为了防止单条命令过大造成客户端缓冲区溢 出，对于list、set、hash、zest等类型操作，以64个元素为界拆分为多条，AOF重写降低了文件占用空间，除此之外，文件变小，载入就越快</em></p>
+<p><em>如何触发，根据auto-aof-rewrite-min-size和auto-aof-rewrite-percentage参数确定自动触发时机</em></p>
+<h4 id="2-集群"><a href="#2-集群" class="headerlink" title="2.集群"></a>2.集群</h4><h5 id="一主二从："><a href="#一主二从：" class="headerlink" title="一主二从："></a>一主二从：</h5><p><em>设置：redis.conf中 slaveof <masterip> <masterport>。使用redis-cli客户端连接到redis服务，执行slaveof命令  slaveof <masterip> <masterport></em></p>
+<p><em>slave 只能备份master写的操作，也就是说只能读不能写</em></p>
+<h5 id="哨兵模式："><a href="#哨兵模式：" class="headerlink" title="哨兵模式："></a>哨兵模式：</h5><h5 id="什么是哨兵-哨兵也是一台redis服务器，只不过不提供数据服务-通常哨兵配置数为单数，防止选举的时候结果打平"><a href="#什么是哨兵-哨兵也是一台redis服务器，只不过不提供数据服务-通常哨兵配置数为单数，防止选举的时候结果打平" class="headerlink" title="什么是哨兵 哨兵也是一台redis服务器，只不过不提供数据服务,通常哨兵配置数为单数，防止选举的时候结果打平"></a><strong>什么是哨兵</strong> <em>哨兵也是一台redis服务器，只不过不提供数据服务,通常哨兵配置数为单数，防止选举的时候结果打平</em></h5><p><strong>哨兵的作用</strong></p>
+<p><em>不断的检查master和slave是否正常运行，master存活检测、master与slave运行情况检测</em></p>
+<p><em>当被监控的服务器出问题时，向其他的哨兵发送通知</em></p>
+<p><em>当master挂掉的时候，下线master，通过选举的方式选取一个slave作为master，将其他slave链接到新的master，服务器地址</em></p>
+<p><strong>配置哨兵</strong></p>
+<p><em>一主二从一般，配置三个哨兵，在sentinel.conf中配置不同的端口</em></p>
+<p><em>然后就是启动哨兵</em></p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-sentinel sentinel-port.conf</span><br></pre></td></tr></table></figure>
+
+<p><strong>sentinel.conf</strong></p>
+<p><strong>主观下线</strong></p>
+<p><em>当一台sentinel认为master挂了，将master标记成SRI_S_DOWN,被称为主观下线</em></p>
+<p><strong>客观下线</strong></p>
+<p><em>当被标记为S_DOWN的机器，会引起其他的sentinel前来查看这台机器的状态，如果半数以上的sentinel都认为此机器挂了，将标记改为O_DOWN</em></p>
+<p><strong>选举</strong></p>
+<p><em>sentinel中根据投票的方式选出一个sentinel，根据一原则去从slave中选出健壮的成为新的master，其他的slave  slaveof新的master，就算原来的master连上来了也会变为新master的slave</em></p>
+
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+        <div class="post-tags">
+          
+            <a href="/tags/%E7%BC%93%E5%AD%98/" rel="tag"># 缓存</a>
+          
+            <a href="/tags/nosql/" rel="tag"># nosql</a>
+          
+        </div>
+      
+
+      
+      
+      
+
+      
+        <div class="post-nav">
+          <div class="post-nav-next post-nav-item">
+            
+              <a href="/%E7%BC%93%E5%AD%98%E9%97%AE%E9%A2%98.html" rel="next" title="缓存问题">
+                <i class="fa fa-chevron-left"></i> 缓存问题
+              </a>
+            
+          </div>
+
+          <span class="post-nav-divider"></span>
+
+          <div class="post-nav-prev post-nav-item">
+            
+              <a href="/spring%20cloud%20gateway.html" rel="prev" title="服务网关">
+                服务网关 <i class="fa fa-chevron-right"></i>
+              </a>
+            
+          </div>
+        </div>
+      
+
+      
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+
+    <div class="post-spread">
+      
+    </div>
+  </div>
+
+
+          </div>
+          
+
+
+          
+
+  
+
+
+
+        </div>
+        
+          
+  
+  <div class="sidebar-toggle">
+    <div class="sidebar-toggle-line-wrap">
+      <span class="sidebar-toggle-line sidebar-toggle-line-first"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-middle"></span>
+      <span class="sidebar-toggle-line sidebar-toggle-line-last"></span>
+    </div>
+  </div>
+
+  <aside id="sidebar" class="sidebar">
+    
+    <div class="sidebar-inner">
+
+      
+
+      
+        <ul class="sidebar-nav motion-element">
+          <li class="sidebar-nav-toc sidebar-nav-active" data-target="post-toc-wrap">
+            文章目录
+          </li>
+          <li class="sidebar-nav-overview" data-target="site-overview-wrap">
+            站点概览
+          </li>
+        </ul>
+      
+
+      <section class="site-overview-wrap sidebar-panel">
+        <div class="site-overview">
+          <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+            
+              <img class="site-author-image" itemprop="image"
+                src="/images/icon.jpg"
+                alt="白沙" />
+            
+              <p class="site-author-name" itemprop="name">白沙</p>
+              <p class="site-description motion-element" itemprop="description">记录生活，分享知识</p>
+          </div>
+
+          <nav class="site-state motion-element">
+
+            
+              <div class="site-state-item site-state-posts">
+              
+                <a href="/archives/">
+              
+                  <span class="site-state-item-count">11</span>
+                  <span class="site-state-item-name">日志</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-categories">
+                <a href="/categories/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">分类</span>
+                </a>
+              </div>
+            
+
+            
+              
+              
+              <div class="site-state-item site-state-tags">
+                <a href="/tags/index.html">
+                  <span class="site-state-item-count">8</span>
+                  <span class="site-state-item-name">标签</span>
+                </a>
+              </div>
+            
+
+          </nav>
+
+          
+
+          
+
+          
+          
+
+          
+          
+
+          
+
+        </div>
+      </section>
+
+      
+      <!--noindex-->
+        <section class="post-toc-wrap motion-element sidebar-panel sidebar-panel-active">
+          <div class="post-toc">
+
+            
+              
+            
+
+            
+              <div class="post-toc-content"><ol class="nav"><li class="nav-item nav-level-1"><a class="nav-link" href="#redis"><span class="nav-number">1.</span> <span class="nav-text">redis</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#概述："><span class="nav-number">1.0.1.</span> <span class="nav-text">概述：</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#redis的IO模型"><span class="nav-number">1.0.2.</span> <span class="nav-text">redis的IO模型:</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#redis的高可用"><span class="nav-number">1.0.3.</span> <span class="nav-text">redis的高可用:</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#为什么要高可用"><span class="nav-number">1.0.3.1.</span> <span class="nav-text">为什么要高可用</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#1-持久化"><span class="nav-number">1.0.3.2.</span> <span class="nav-text">1.持久化</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#RDB"><span class="nav-number">1.0.3.3.</span> <span class="nav-text">RDB</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#原理："><span class="nav-number">1.0.3.3.1.</span> <span class="nav-text">原理：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#优缺点："><span class="nav-number">1.0.3.3.2.</span> <span class="nav-text">优缺点：</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#AOF"><span class="nav-number">1.0.3.4.</span> <span class="nav-text">AOF</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#原理：-1"><span class="nav-number">1.0.3.4.1.</span> <span class="nav-text">原理：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#如何开启："><span class="nav-number">1.0.3.4.2.</span> <span class="nav-text">如何开启：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#AOF重写"><span class="nav-number">1.0.3.4.3.</span> <span class="nav-text">AOF重写</span></a></li></ol></li><li class="nav-item nav-level-4"><a class="nav-link" href="#2-集群"><span class="nav-number">1.0.3.5.</span> <span class="nav-text">2.集群</span></a><ol class="nav-child"><li class="nav-item nav-level-5"><a class="nav-link" href="#一主二从："><span class="nav-number">1.0.3.5.1.</span> <span class="nav-text">一主二从：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#哨兵模式："><span class="nav-number">1.0.3.5.2.</span> <span class="nav-text">哨兵模式：</span></a></li><li class="nav-item nav-level-5"><a class="nav-link" href="#什么是哨兵-哨兵也是一台redis服务器，只不过不提供数据服务-通常哨兵配置数为单数，防止选举的时候结果打平"><span class="nav-number">1.0.3.5.3.</span> <span class="nav-text">什么是哨兵 哨兵也是一台redis服务器，只不过不提供数据服务,通常哨兵配置数为单数，防止选举的时候结果打平</span></a></li></ol></li></ol></li></ol></li></ol></li></ol></div>
+            
+
+          </div>
+        </section>
+      <!--/noindex-->
+      
+
+      
+
+    </div>
+  </aside>
+
+
+        
+      </div>
+    </main>
+
+    <footer id="footer" class="footer">
+      <div class="footer-inner">
+        <div class="copyright">&copy; <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">白沙</span>
+
+  
+</div>
+
+
+  <div class="powered-by">由 <a class="theme-link" target="_blank" href="https://hexo.io">Hexo</a> 强力驱动</div>
+
+
+
+  <span class="post-meta-divider">|</span>
+
+
+
+  <div class="theme-info">主题 &mdash; <a class="theme-link" target="_blank" href="https://github.com/iissnan/hexo-theme-next">NexT.Gemini</a> v5.1.4</div>
+
+
+
+
+        
+
+
+
+
+
+
+
+        
+      </div>
+    </footer>
+
+    
+      <div class="back-to-top">
+        <i class="fa fa-arrow-up"></i>
+        
+      </div>
+    
+
+    
+
+  </div>
+
+  
+
+<script type="text/javascript">
+  if (Object.prototype.toString.call(window.Promise) !== '[object Function]') {
+    window.Promise = null;
+  }
+</script>
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery/index.js?v=2.1.3"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fastclick/lib/fastclick.min.js?v=1.0.6"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/jquery_lazyload/jquery.lazyload.js?v=1.9.7"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/velocity/velocity.ui.min.js?v=1.2.1"></script>
+  
+
+  
+  
+    <script type="text/javascript" src="/lib/fancybox/source/jquery.fancybox.pack.js?v=2.1.5"></script>
+  
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/utils.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/motion.js?v=5.1.4"></script>
+
+
+
+  
+  
+
+
+  <script type="text/javascript" src="/js/src/affix.js?v=5.1.4"></script>
+
+  <script type="text/javascript" src="/js/src/schemes/pisces.js?v=5.1.4"></script>
+
+
+
+  
+  <script type="text/javascript" src="/js/src/scrollspy.js?v=5.1.4"></script>
+<script type="text/javascript" src="/js/src/post-details.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  <script type="text/javascript" src="/js/src/bootstrap.js?v=5.1.4"></script>
+
+
+
+  
+
+
+  
+
+
+
+
+	
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+  
+
+  
+
+  
+
+  
+  
+
+  
+
+  
+
+  
+  <script type="text/javascript" src="/js/src/exturl.js?v=5.1.4"></script>
+
+
+</body>
+</html>
